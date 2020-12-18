@@ -67,6 +67,11 @@ func DialTimeout(network, addr string, timeout time.Duration) (*Conn, error) {
 	return NewConn(c), nil
 }
 
+func (c *Conn) UseTube(name string) error {
+    c.Tube = Tube{c, name}
+    return nil
+}
+
 // Close closes the underlying network connection.
 func (c *Conn) Close() error {
 	return c.c.Close()
@@ -254,6 +259,16 @@ func (c *Conn) Stats() (map[string]string, error) {
 // StatsJob retrieves statistics about the given job.
 func (c *Conn) StatsJob(id uint64) (map[string]string, error) {
 	r, err := c.cmd(nil, nil, nil, "stats-job", id)
+	if err != nil {
+		return nil, err
+	}
+	body, err := c.readResp(r, true, "OK")
+	return parseDict(body), err
+}
+
+// StatsTube retrieves statistics about the given tube.
+func (c *Conn) StatsTube(name string) (map[string]string, error) {
+	r, err := c.cmd(nil, nil, nil, "stats-tube", name)
 	if err != nil {
 		return nil, err
 	}
