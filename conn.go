@@ -241,6 +241,15 @@ func (c *Conn) Peek(id uint64) (body []byte, err error) {
 	return c.readResp(r, true, "FOUND %d", &id)
 }
 
+// ReserveJob reserves the specified job by id from the server.
+func (c *Conn) ReserveJob(id uint64) (body []byte, err error) {
+	r, err := c.cmd(nil, nil, nil, "reserve-job", id)
+	if err != nil {
+		return nil, err
+	}
+	return c.readResp(r, true, "RESERVED %d", &id)
+}
+
 // Stats retrieves global statistics from the server.
 func (c *Conn) Stats() (map[string]string, error) {
 	r, err := c.cmd(nil, nil, nil, "stats")

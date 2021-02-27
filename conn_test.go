@@ -197,6 +197,21 @@ func TestPeekTwice(t *testing.T) {
 	}
 }
 
+func TestReserveJob(t *testing.T) {
+	c := NewConn(mock("reserve-job 1\r\n", "RESERVED 1 1\r\nx\r\n"))
+
+	body, err := c.ReserveJob(1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(body) != 1 || body[0] != 'x' {
+		t.Fatalf("bad body, expected %#v, got %#v", "x", string(body))
+	}
+	if err = c.Close(); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestRelease(t *testing.T) {
 	c := NewConn(mock("release 1 3 2\r\n", "RELEASED\r\n"))
 
