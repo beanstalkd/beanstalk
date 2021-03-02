@@ -79,14 +79,14 @@ func (c *Conn) cmd(t *Tube, ts *TubeSet, body []byte, op string, args ...interfa
 			return req{}, fmt.Errorf("duration must be non-negative, got %v", time.Duration(d))
 		}
 	}
-
-	r := req{c.c.Next(), op}
-	c.c.StartRequest(r.id)
-	defer c.c.EndRequest(r.id)
 	err := c.adjustTubes(t, ts)
 	if err != nil {
 		return req{}, err
 	}
+
+	r := req{c.c.Next(), op}
+	c.c.StartRequest(r.id)
+	defer c.c.EndRequest(r.id)
 	if body != nil {
 		args = append(args, len(body))
 	}
@@ -128,6 +128,12 @@ func (c *Conn) adjustTubes(t *Tube, ts *TubeSet) error {
 		for s := range ts.Name {
 			c.watched[s] = true
 		}
+		// if watched list is empty, means the last IGNORE cmd is bound to fail
+		// it's ok to return NOT_IGNORED here, like server did
+		// then simply ignore the NOT_IGNORED error when reading the server response
+		if len(c.watched) == 0 {
+			return ConnError{c, "ignore", ErrNotIgnored}
+		}
 	}
 	return nil
 }
@@ -146,7 +152,7 @@ func (c *Conn) readResp(r req, readBody bool, f string, a ...interface{}) (body 
 	c.c.StartResponse(r.id)
 	defer c.c.EndResponse(r.id)
 	line, err := c.c.ReadLine()
-	for strings.HasPrefix(line, "WATCHING ") || strings.HasPrefix(line, "USING ") {
+	for strings.HasPrefix(line, "WATCHING ") || strings.HasPrefix(line, "USING ") || line == "NOT_IGNORED" {
 		line, err = c.c.ReadLine()
 	}
 	if err != nil {
